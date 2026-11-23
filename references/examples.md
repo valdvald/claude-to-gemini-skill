@@ -1,10 +1,10 @@
 # Conversion Examples
 
-Contoh konversi dari skill dan command Claude Code ke format standar Gemini / Google Antigravity. Perhatikan dua hal yang konsisten di semua contoh: isi skill hasil konversi mempertahankan bahasa sumber (di sini Inggris), dan hanya catatan migrasi yang berbahasa Indonesia.
+Real-world before-and-after examples converting Claude Code skills and commands into standard Gemini / Google Antigravity Agent Skills. Note that converted skill bodies always preserve the source language.
 
-## Example 1: Skill Manual-Only dengan Injeksi Shell, Argumen, dan Pembatasan
+## Example 1: Manual-Only Skill with Shell Injection, Arguments, and Restrictions
 
-### Sebelum (Claude Code: `.claude/skills/release-check/SKILL.md`)
+### Before (Claude Code: `.claude/skills/release-check/SKILL.md`)
 
 ````markdown
 ---
@@ -30,7 +30,7 @@ model: sonnet
 4. Draft release notes and run `git tag v$0`.
 ````
 
-### Sesudah (Gemini / Antigravity: `.agents/skills/release-check/SKILL.md`)
+### After (Gemini / Antigravity: `.agents/skills/release-check/SKILL.md`)
 
 ````markdown
 ---
@@ -57,19 +57,19 @@ This skill touches the release process. Never run `git tag` or `git push` withou
 5. Ask the user to confirm before running `git tag v<version>`.
 ````
 
-### Catatan Migrasi (Example 1)
+### Migration Notes (Example 1)
 
-- `disable-model-invocation: true` menjadi `## Safety Gate`. `description` memakai "Use only when the user explicitly asks ..." dan tidak diperluas dengan kata kunci dari `when_to_use`, supaya skill tetap tidak terpicu otomatis seperti di sumber.
-- `when_to_use` tidak digabung penuh karena skill ini manual-only. Frasa pemicunya hanya dipakai untuk menyempitkan kapan skill boleh dijalankan.
-- `` !`git status --short` `` dan `` !`git log -n 5 --oneline` `` menjadi langkah terminal eksplisit pada Step 1.
-- `$0` dan `$ARGUMENTS` menjadi `## Inputs`, dan `argument-hint` ikut terserap di sana.
-- `${CLAUDE_SKILL_DIR}/scripts/check_changelog.py` menjadi path relatif plus instruksi me-resolve, karena shell biasanya berjalan dari root proyek.
-- `CLAUDE.md`, `Bash`, dan `Grep` menjadi referensi netral. `allowed-tools` dan `model` dihapus. Izin menjalankan `git` diatur di Permissions Antigravity atau policy Gemini CLI (tindak lanjut manual).
-- Dependensi `git` dan `python3` dipindahkan ke `compatibility`. Bahasa isi skill tetap Inggris sesuai sumber.
+- `disable-model-invocation: true` becomes `## Safety Gate`. `description` uses "Use only when the user explicitly asks ..." and does not expand auto-trigger keywords from `when_to_use`, preserving manual-only behavior.
+- `when_to_use` is not merged broadly because this skill is manual-only; its phrases are used only to scope explicit user requests.
+- `` !`git status --short` `` and `` !`git log -n 5 --oneline` `` become explicit terminal commands in Step 1.
+- `$0` and `$ARGUMENTS` become `## Inputs`, absorbing `argument-hint`.
+- `${CLAUDE_SKILL_DIR}/scripts/check_changelog.py` becomes a relative path plus a resolution reminder, since the shell typically runs from the project root.
+- `CLAUDE.md`, `Bash`, and `Grep` become neutral references. `allowed-tools` and `model` are removed; `git` permissions move to Antigravity Permissions or Gemini CLI policy (manual follow-up).
+- `git` and `python3` requirements move to `compatibility`.
 
-## Example 2: Legacy Command dengan `context: fork` dan `paths`
+## Example 2: Legacy Command with `context: fork` and `paths`
 
-### Sebelum (Claude Code: `.claude/commands/sql-audit.md`)
+### Before (Claude Code: `.claude/commands/sql-audit.md`)
 
 ````markdown
 ---
@@ -84,7 +84,7 @@ disallowed-tools: Write, Edit
 Inspect `$ARGUMENTS` in `${CLAUDE_PROJECT_DIR}` and report unsafe DDL operations (DROP COLUMN, lock-heavy ALTER TABLE).
 ````
 
-### Sesudah (Gemini / Antigravity: `.agents/skills/sql-audit/SKILL.md`)
+### After (Gemini / Antigravity: `.agents/skills/sql-audit/SKILL.md`)
 
 ````markdown
 ---
@@ -108,7 +108,7 @@ Audit SQL migration files read-only and report unsafe DDL operations before they
 3. Report findings in a table: file, line number, risk type, and a safer mitigation.
 ````
 
-Opsional, aturan Antigravity agar skill ini diingatkan otomatis saat migrasi disentuh (`.agents/rules/sql-migrations.md`):
+Optional Antigravity rule to automatically remind the agent whenever migration files are touched (`.agents/rules/sql-migrations.md`):
 
 ````markdown
 ---
@@ -120,19 +120,19 @@ description: "Reminder to audit SQL migrations."
 Before finishing work on SQL migration files, audit them with the `sql-audit` skill.
 ````
 
-### Catatan Migrasi (Example 2)
+### Migration Notes (Example 2)
 
-- File tunggal `.claude/commands/sql-audit.md` dibungkus menjadi direktori `sql-audit/SKILL.md` dengan `name: sql-audit` dan `description` baru (sumber hanya punya satu kalimat pendek).
-- `disallowed-tools: Write, Edit` menjadi aturan eksplisit mode read-only.
-- `paths` dipindahkan ke `description` dan `## Scope and Constraints`. Untuk aktivasi otomatis per file dibuat aturan `trigger: glob` (tindak lanjut manual jika pengguna ingin memakainya). File aturan wajib berfrontmatter, kalau tidak dibuang diam-diam.
-- `context: fork` dan `agent: Explore` menjadi panduan isolasi analisis dan pelaporan ringkas.
-- `${CLAUDE_PROJECT_DIR}` menjadi root workspace, dan `$ARGUMENTS` menjadi "file yang disebut pengguna".
+- The single file `.claude/commands/sql-audit.md` is wrapped into `sql-audit/SKILL.md` with `name: sql-audit` and an expanded `description`.
+- `disallowed-tools: Write, Edit` becomes an explicit read-only rule.
+- `paths` moves into `description` and `## Scope and Constraints`. For automatic per-file activation, an optional `trigger: glob` rule is created (frontmatter is mandatory or the rule is silently dropped).
+- `context: fork` and `agent: Explore` become guidance to isolate analysis and return concise findings.
+- `${CLAUDE_PROJECT_DIR}` becomes the workspace root, and `$ARGUMENTS` becomes the user-specified files.
 
-## Example 3: Command Manual-Only untuk Gemini CLI (`.toml`)
+## Example 3: Manual-Only Command for Gemini CLI (`.toml`)
 
-Untuk command yang hanya dipanggil manual dan memakai injeksi shell plus argumen, Gemini CLI punya padanan yang lebih dekat daripada skill: custom command TOML. Skill tidak melewati preprocessor, sedangkan command TOML punya `!{...}` dan `{{args}}`.
+For manual-only commands using shell injection and arguments, Gemini CLI has a closer match than a skill: a TOML custom command. Skills are not preprocessed, whereas TOML commands support `!{...}` and `{{args}}`.
 
-### Sebelum (Claude Code: `.claude/commands/changes.md`)
+### Before (Claude Code: `.claude/commands/changes.md`)
 
 ````markdown
 ---
@@ -146,7 +146,7 @@ Review the uncommitted changes below. Extra focus: $ARGUMENTS
 !`git diff HEAD`
 ````
 
-### Sesudah (Gemini CLI: `.gemini/commands/changes.toml`, dipanggil dengan `/changes`)
+### After (Gemini CLI: `.gemini/commands/changes.toml`, invoked with `/changes`)
 
 ````toml
 description = "Review uncommitted changes"
@@ -157,19 +157,19 @@ Review the uncommitted changes below. Extra focus: {{args}}
 """
 ````
 
-### Catatan Migrasi (Example 3)
+### Migration Notes (Example 3)
 
-- `$ARGUMENTS` menjadi `{{args}}`. Di dalam blok `!{...}`, `{{args}}` otomatis di-escape untuk shell.
-- `` !`git diff HEAD` `` menjadi `!{git diff HEAD}`. Gemini CLI meminta konfirmasi sebelum menjalankan perintah shell di command.
-- `disable-model-invocation: true` otomatis terpenuhi, karena command TOML hanya berjalan saat pengguna mengetiknya.
-- `allowed-tools` dan `argument-hint` dihapus. Gunakan `/commands reload` setelah menambah atau mengubah file `.toml`.
-- Isi `!{...}` harus memiliki kurung kurawal yang seimbang. Untuk perintah yang rumit, taruh di script lalu panggil script itu dari `!{...}`.
-- Target Antigravity tidak punya format ini. Konversi command yang sama untuk Antigravity mengikuti pola Example 1 (skill dengan Safety Gate). Antigravity CLI sendiri mengonversi command TOML lama menjadi skill lewat `agy plugin import gemini`.
-- Bagi pengguna tier gratis dan Google One, Gemini CLI sudah digantikan Antigravity CLI (lihat `SKILL.md`), jadi format `.toml` ini hanya relevan untuk pengguna yang masih memakai Gemini CLI.
+- `$ARGUMENTS` becomes `{{args}}`. Inside `!{...}`, `{{args}}` is automatically shell-escaped.
+- `` !`git diff HEAD` `` becomes `!{git diff HEAD}`. Gemini CLI asks for confirmation before running shell commands in custom commands.
+- `disable-model-invocation: true` is satisfied natively because TOML commands only run when invoked by the user.
+- `allowed-tools` and `argument-hint` are removed. Run `/commands reload` after adding or editing `.toml` files.
+- Braces inside `!{...}` must be balanced. For complex commands, put the logic in a script and call that script from `!{...}`.
+- Antigravity does not use this format; convert the same command for Antigravity using the Example 1 pattern (a skill with a Safety Gate). Antigravity CLI converts legacy TOML commands into skills via `agy plugin import gemini`.
+- For free-tier and Google One users, Gemini CLI was replaced by Antigravity CLI (see `SKILL.md`), so `.toml` applies only to users still on Gemini CLI.
 
-## Example 4: Skill dengan Blok `` ```! ``, Argumen Bernama, dan Dependensi CLI
+## Example 4: Skill with `` ```! `` Block, Named Arguments, and CLI Dependencies
 
-### Sebelum (Claude Code: `.claude/skills/pr-summary/SKILL.md`)
+### Before (Claude Code: `.claude/skills/pr-summary/SKILL.md`)
 
 ````markdown
 ---
@@ -191,7 +191,7 @@ gh pr diff $pr_number --stat
 Summarize PR #$pr_number in three bullet points for release notes. Format the result with `${CLAUDE_SKILL_DIR}/scripts/format_notes.py`.
 ````
 
-### Sesudah (Gemini / Antigravity: `.agents/skills/pr-summary/SKILL.md`)
+### After (Gemini / Antigravity: `.agents/skills/pr-summary/SKILL.md`)
 
 ````markdown
 ---
@@ -212,17 +212,17 @@ compatibility: "Requires the GitHub CLI (gh), authenticated, and python3."
 3. Format the result with `scripts/format_notes.py`. The path is relative to this skill's folder, so resolve it against the folder that contains this SKILL.md before running.
 ````
 
-### Catatan Migrasi (Example 4)
+### Migration Notes (Example 4)
 
-- Blok `` ```! `` berisi dua perintah, jadi keduanya menjadi satu langkah eksplisit yang menyebut kedua perintah itu. Tanpa konversi, blok itu hanya menjadi teks literal.
-- `$pr_number` (argumen bernama dari `arguments`) menjadi parameter `pr_number` di `## Inputs`.
-- Skill ini tidak manual-only, jadi `when_to_use` digabung ke `description` agar auto-trigger tetap akurat.
-- `allowed-tools: Bash(gh *)` dihapus dan dicatat sebagai tindak lanjut (izin `gh` di Permissions Antigravity atau policy Gemini CLI). Kebutuhan `gh` dan `python3` pindah ke `compatibility`.
-- `effort: low` dihapus tanpa pengganti karena tugasnya ringan. Untuk target Gemini app, skill ini tidak cocok karena bergantung pada terminal dan `gh`.
+- The `` ```! `` block contains two commands, so both become explicit terminal commands in Step 1. Without conversion, the block would remain literal text.
+- `$pr_number` (named argument from `arguments`) becomes `pr_number` under `## Inputs`.
+- Because this skill is not manual-only, `when_to_use` is merged into `description` to preserve auto-trigger accuracy.
+- `allowed-tools: Bash(gh *)` is removed and noted as a manual follow-up (configure `gh` in Antigravity Permissions or Gemini CLI policy). The `gh` and `python3` dependencies move to `compatibility`.
+- `effort: low` is dropped with no replacement needed. This skill is unsuitable for the Gemini app because it requires a terminal and `gh`.
 
-## Contoh Ringkasan Migrasi (untuk Example 1)
+## Sample Migration Summary (for Example 1)
 
-1. **Perubahan Utama**: `when_to_use`, `argument-hint`, `allowed-tools`, dan `model` dihapus dari frontmatter. `description` ditulis ulang dan `compatibility` ditambahkan. Injeksi shell menjadi langkah terminal, `$0` dan `$ARGUMENTS` menjadi `## Inputs`, `${CLAUDE_SKILL_DIR}` menjadi path relatif, `CLAUDE.md` menjadi `GEMINI.md`.
-2. **Adaptasi Perilaku**: `disable-model-invocation: true` menjadi `## Safety Gate` dan `description` "Use only when ...". Instruksi `Bash` dan `Grep` menjadi kapabilitas netral.
-3. **Tindak Lanjut Manual**: atur izin `git` di Permissions Antigravity atau policy Gemini CLI. Pasang skill dengan `cp -R release-check .agents/skills/` (Antigravity) atau `gemini skills install ./release-check --scope workspace` (Gemini CLI).
-4. **Verifikasi**: `validate_skill.py --target antigravity` lulus tanpa error. Skill muncul di `/skills` dan terpicu saat pengguna meminta rilis secara eksplisit.
+1. **Key Changes**: Removed `when_to_use`, `argument-hint`, `allowed-tools`, and `model` from frontmatter. Rewrote `description` and added `compatibility`. Converted shell injections into terminal steps, `$0` and `$ARGUMENTS` into `## Inputs`, `${CLAUDE_SKILL_DIR}` into a relative path, and `CLAUDE.md` into `GEMINI.md`.
+2. **Behavior Adaptations**: Converted `disable-model-invocation: true` into `## Safety Gate` and a "Use only when ..." description. Replaced `Bash` and `Grep` tool names with neutral capability phrasing.
+3. **Manual Follow-Ups**: Configure `git` permissions in Antigravity Permissions or Gemini CLI policy. Install via `cp -R release-check .agents/skills/` (Antigravity) or `gemini skills install ./release-check --scope workspace` (Gemini CLI).
+4. **Verification**: `validate_skill.py --target antigravity` passed with 0 errors. Skill appears in `/skills` and triggers only when explicitly requested.

@@ -1,180 +1,180 @@
 ---
 name: claude-to-gemini-skill
-description: "Mengonversi skill dan custom command Claude/Claude Code (.claude/skills/, .claude/commands/, SKILL.md) menjadi Agent Skill yang berjalan di Google Antigravity (App, CLI, IDE), Gemini CLI, dan aplikasi Gemini. Gunakan setiap kali pengguna ingin memigrasi, mem-porting, mengadaptasi, mengonversi, atau memasang skill Claude di Gemini atau Antigravity, atau menyerahkan file, folder, zip, atau teks SKILL.md dari Claude untuk diubah formatnya. Converts, ports, and migrates Claude Code skills, slash commands, and SKILL.md files for Gemini and Antigravity."
-compatibility: "Antigravity (App, CLI, IDE), Gemini CLI, Gemini app. Script validasi memerlukan Python 3.8+ (PyYAML opsional)."
+description: "Converts Claude and Claude Code skills and custom commands (.claude/skills/, .claude/commands/, SKILL.md) into Agent Skills compatible with Google Antigravity (App, CLI, IDE), Gemini CLI, and the Gemini app. Use whenever the user wants to migrate, port, adapt, convert, or install a Claude skill on Gemini or Antigravity, or provides a Claude SKILL.md file, folder, zip archive, or pasted text for conversion."
+compatibility: "Antigravity (App, CLI, IDE), Gemini CLI, Gemini app. Validation script requires Python 3.8+ (PyYAML optional)."
 ---
 # Claude to Gemini Skill Converter
 
-Konversikan skill dan custom command Claude/Claude Code menjadi Agent Skill yang siap pakai di Google Antigravity (App, CLI, IDE), Gemini CLI, dan aplikasi Gemini tanpa kehilangan maksud dan logika alur kerjanya.
+Convert Claude and Claude Code skills and custom commands into portable Agent Skills ready for Google Antigravity (App, CLI, IDE), Gemini CLI, and the Gemini app without losing the original intent or workflow logic.
 
 ## When to Use
 
-- Pengguna ingin mem-porting atau memasang skill Claude (`SKILL.md` atau folder `.claude/skills/<name>/`) di Gemini atau Antigravity.
-- Pengguna ingin mengubah custom command lama Claude Code (`.claude/commands/<name>.md`) menjadi skill.
-- Pengguna ingin mengaudit skill agar bebas dari sintaks khusus Claude Code (injeksi perintah shell, `$ARGUMENTS`, `${CLAUDE_SKILL_DIR}`, `hooks`, `context: fork`, `paths`).
-- Pengguna meminta paket skill yang siap dipasang atau diunggah ke Gemini, Antigravity, atau Gemini CLI.
+- The user wants to port or install a Claude skill (`SKILL.md` or `.claude/skills/<name>/` folder) on Gemini or Antigravity.
+- The user wants to convert a legacy Claude Code custom command (`.claude/commands/<name>.md`) into a standard skill.
+- The user wants to audit a skill to remove Claude Code-specific syntax (shell command injection, `$ARGUMENTS`, `${CLAUDE_SKILL_DIR}`, `hooks`, `context: fork`, `paths`).
+- The user asks for a skill package ready to install or upload to Gemini, Antigravity, or Gemini CLI.
 
 ## Principles
 
-1. **Pertahankan maksud, bukan sintaks.** Fitur Claude yang tidak punya padanan diubah menjadi instruksi prosedural atau tindak lanjut manual yang dicatat. Jangan menghapusnya diam-diam.
-2. **Pertahankan bahasa skill sumber.** Terjemahkan hanya jika pengguna memintanya. Heading standar (`## Inputs`, `## Steps`) tetap berbahasa Inggris.
-3. **Baca script sumber, jangan jalankan.** Skill pihak ketiga bisa berisi perintah berbahaya. Audit cukup dengan membaca isinya.
-4. **Jangan menimpa sumber.** Tulis hasil konversi ke folder baru (misalnya `converted/<name>/`) agar skill asli tetap utuh.
-5. **Fakta platform cepat berubah.** Tabel di bawah diverifikasi ke dokumentasi resmi pada 2026-11-21 (lihat Sources). Jika perilaku di lapangan berbeda, ikuti dokumentasi resmi dan laporkan selisihnya.
+1. **Preserve intent, not syntax.** Convert Claude features without a direct equivalent into procedural instructions or documented manual follow-ups. Never drop them silently.
+2. **Preserve the source skill's language.** Translate only if the user explicitly asks. Keep standard headings (`## Inputs`, `## Steps`) in English.
+3. **Read source scripts; do not run them.** Third-party skills may contain unsafe commands. Audit them strictly by reading their contents.
+4. **Do not overwrite the source.** Write the converted output to a new folder (for example `converted/<name>/`) so the original skill remains intact.
+5. **Platform details evolve quickly.** The tables below were verified against official documentation on 2026-11-21 (see Sources). If live behavior differs, follow the official docs and note the discrepancy.
 
 ## Target Surfaces and Paths
 
-Tentukan target pengguna terlebih dahulu. Jika tidak disebutkan, hasilkan satu folder skill standar lalu berikan perintah penempatan untuk Antigravity dan Gemini CLI. Path proyek `.agents/skills/` dibaca oleh semua surface Antigravity dan oleh Gemini CLI, jadi itu pilihan paling aman. Path global berbeda per surface, sehingga satu lokasi tidak cukup untuk semuanya.
+Identify the user's target first. If none is specified, generate one standard skill folder and provide placement commands for Antigravity and Gemini CLI. The project path `.agents/skills/` is read by all Antigravity surfaces and by Gemini CLI, making it the safest default. Global paths differ per surface, so no single global path covers all of them.
 
-| Target Surface | Workspace / Project Path | Global / User Path | Catatan |
+| Target Surface | Workspace / Project Path | Global / User Path | Notes |
 | :--- | :--- | :--- | :--- |
-| **Antigravity App** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md` | Auto-trigger lewat `description` dan manual `/<name>`. Folder induk sampai root repositori ikut dipindai. `.agent/` (tunggal) masih didukung. |
-| **Antigravity IDE** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md` (path lama `~/.gemini/antigravity/skills/` juga didukung) | Daftar skill aktif ada di menu Customizations pada panel agen. |
-| **Antigravity CLI (`agy`)** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md`. Khusus CLI: `~/.gemini/antigravity-cli/skills/` dan `~/.gemini/skills/` | Setiap skill otomatis menjadi slash command. Skill plugin ada di `~/.gemini/config/plugins/<plugin>/skills/`. |
-| **Gemini CLI** | `<workspace>/.agents/skills/<name>/SKILL.md` atau `.gemini/skills/<name>/SKILL.md` | `~/.agents/skills/<name>/SKILL.md` atau `~/.gemini/skills/<name>/SKILL.md` | Pada tier yang sama, alias `.agents/skills/` menang atas `.gemini/skills/`. Aktivasi lewat tool `activate_skill` dengan konfirmasi pengguna. |
-| **Gemini app** | Tidak ada path file. Customize > Skills > Create > Upload | Terikat ke akun pengguna | Tanpa terminal, tipe file dibatasi, script tanpa internet. Baca `references/gemini-app.md`. |
+| **Antigravity App** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md` | Auto-triggered via `description` or manually via `/<name>`. Parent folders up to the repository root are also scanned. Singular `.agent/` is still supported. |
+| **Antigravity IDE** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md` (legacy `~/.gemini/antigravity/skills/` also supported) | Active skills appear in the Customizations menu on the agent panel. |
+| **Antigravity CLI (`agy`)** | `<workspace>/.agents/skills/<name>/SKILL.md` | `~/.gemini/config/skills/<name>/SKILL.md`. CLI-only: `~/.gemini/antigravity-cli/skills/` and `~/.gemini/skills/` | Every skill automatically becomes a slash command. Plugin skills live in `~/.gemini/config/plugins/<plugin>/skills/`. |
+| **Gemini CLI** | `<workspace>/.agents/skills/<name>/SKILL.md` or `.gemini/skills/<name>/SKILL.md` | `~/.agents/skills/<name>/SKILL.md` or `~/.gemini/skills/<name>/SKILL.md` | Within the same tier, `.agents/skills/` takes precedence over `.gemini/skills/`. Activated via `activate_skill` with user confirmation. |
+| **Gemini app** | No filesystem path. Customize > Skills > Create > Upload | Tied to the user's account | No terminal, restricted file types, offline scripts only. Read `references/gemini-app.md`. |
 
-Catatan penting:
+Important notes:
 
-- Antigravity memindai satu tingkat saja. Folder skill harus langsung berada di dalam `skills/` (`skills/<name>/`), bukan `skills/<kategori>/<name>/`.
-- Jika ada nama skill kembar: di Antigravity CLI, `~/.gemini/antigravity-cli/skills/` dan `~/.gemini/skills/` menang atas semua lokasi lain. Di Antigravity secara umum urutannya folder pribadi di repositori, workspace, `~/.gemini/config/`, lalu built-in. Di Gemini CLI urutannya workspace, user, extension, lalu built-in.
-- Antigravity membaca ulang skill pada setiap giliran. `/skills reload` atau percakapan baru hanya menyegarkan daftar slash command.
-- `~/.agents/skills/` tidak tercantum di dokumentasi Antigravity. Untuk global di Antigravity gunakan `~/.gemini/config/skills/`.
-- Antigravity CLI tidak membaca `.gemini/skills/` (jalur proyek lama Gemini CLI). Skill di sana harus dipindah ke `.agents/skills/`.
-- Menurut banner dokumentasi Gemini CLI, bagi pengguna tier gratis dan Google One, Gemini CLI digantikan Antigravity CLI pada 18 Juni 2026. Jika pengguna berada di tier itu atau tidak yakin, utamakan target Antigravity.
+- Antigravity scans only one level deep. Skill folders must sit directly inside `skills/` (`skills/<name>/`), not nested as `skills/<category>/<name>/`.
+- Precedence for duplicate skill names: in Antigravity CLI, `~/.gemini/antigravity-cli/skills/` and `~/.gemini/skills/` override all other locations. Across Antigravity generally, precedence is personal folder in repo, workspace, `~/.gemini/config/`, then built-in. In Gemini CLI, precedence is workspace, user, extension, then built-in.
+- Antigravity re-reads skills on every turn. `/skills reload` or a new conversation only refreshes the slash command list.
+- `~/.agents/skills/` is not listed in Antigravity's documentation. Use `~/.gemini/config/skills/` for global Antigravity skills.
+- Antigravity CLI does not read `.gemini/skills/` (the legacy Gemini CLI project path). Move skills there to `.agents/skills/`.
+- Per the Gemini CLI documentation banner, for free-tier and Google One users, Gemini CLI was replaced by Antigravity CLI on June 18, 2026. If the user is on those tiers or unsure, prioritize Antigravity as the target.
 
 ## Conversion Workflow
 
-Ikuti langkah berurutan ini. Tabel pemetaan lengkap ada di `references/mapping-guide.md`, contoh sebelum dan sesudah ada di `references/examples.md`, dan batasan Gemini app ada di `references/gemini-app.md`.
+Follow these steps in order. See `references/mapping-guide.md` for full field and syntax tables, `references/examples.md` for before-and-after examples, and `references/gemini-app.md` for Gemini app constraints.
 
-### Step 0: Tentukan Target dan Cek Kemampuan
+### Step 0: Identify Target and Check Capabilities
 
-1. Tentukan target (Antigravity, Gemini CLI, atau Gemini app). Jika tidak disebutkan, pakai jalur standar di atas.
-2. Cek apakah skill sumber memerlukan kemampuan yang tidak ada di target:
-   - Terminal, git, filesystem proyek, atau server MCP: tidak tersedia di Gemini app. Beri tahu pengguna, tawarkan Antigravity atau Gemini CLI, atau tulis ulang menjadi skill instruksi murni jika pengguna tetap ingin Gemini app.
-   - Script yang memerlukan internet: tidak didukung di Gemini app.
-   - Hooks, subagent, plugin, dan server MCP tidak ikut terbawa oleh frontmatter. Catat sebagai tindak lanjut manual (lihat Step 2 dan Decision Tree).
+1. Determine the target (Antigravity, Gemini CLI, or Gemini app). If unspecified, use the standard path above.
+2. Check whether the source skill relies on capabilities absent from the target:
+   - Terminal, git, local project filesystem, or MCP servers: unavailable in the Gemini app. Inform the user, recommend Antigravity or Gemini CLI, or rewrite as a pure instruction skill if the user still wants the Gemini app.
+   - Scripts requiring internet access: not supported in the Gemini app.
+   - Hooks, subagents, plugins, and MCP servers do not transfer via frontmatter. Record them as manual follow-ups (see Step 2 and the Decision Tree).
 
-### Step 1: Audit Sumber Skill
+### Step 1: Audit the Source Skill
 
-1. Baca seluruh `SKILL.md` (atau file command) dan daftar semua file pendukung (`scripts/`, `references/`, `assets/`, `examples/`, `resources/`). Baca script sebagai teks, jangan dijalankan. Jika inputnya `.zip` atau `.skill`, ekstrak dulu ke direktori kerja. Jika inputnya teks yang ditempel, simpan sebagai `SKILL.md` di folder yang namanya sama dengan `name`.
-2. Identifikasi tujuan inti, input, output, dan dependensi eksternal (CLI, paket Python/Node, MCP, environment variable).
-3. Inventarisasi fitur khusus Claude Code: field frontmatter, `` !`command` `` dan blok `` ```! ``, `$ARGUMENTS`, `$0`, `$name`, variabel `${CLAUDE_*}`, nama tool, id `mcp__server__tool`, referensi `CLAUDE.md`, dan rujukan ke skill lain.
-4. Catat bahasa dokumen sumber. Hasil konversi memakai bahasa yang sama.
+1. Read the entire `SKILL.md` (or command file) and list all supporting files (`scripts/`, `references/`, `assets/`, `examples/`, `resources/`). Read scripts as text without executing them. If the input is a `.zip` or `.skill` archive, extract it to a working directory first. If the input is pasted text, save it as `SKILL.md` in a folder matching `name`.
+2. Identify the core purpose, expected inputs, outputs, and external dependencies (CLIs, Python/Node packages, MCP servers, environment variables).
+3. Inventory all Claude Code-specific features: frontmatter fields, `` !`command` `` and `` ```! `` blocks, `$ARGUMENTS`, `$0`, `$name`, `${CLAUDE_*}` variables, tool names, `mcp__server__tool` IDs, `CLAUDE.md` references, and references to other skills.
+4. Note the source document's language. Keep the converted output in the same language.
 
-### Step 2: Bersihkan dan Standarkan Frontmatter YAML
+### Step 2: Clean and Standardize YAML Frontmatter
 
-Pastikan baris pertama file adalah `---` tanpa BOM. Frontmatter yang tidak valid atau tanpa `description` membuat skill tidak termuat.
+Ensure line 1 is `---` with no UTF-8 BOM. Invalid frontmatter or a missing `description` causes the skill to be silently skipped.
 
-1. Pertahankan hanya field standar Agent Skills:
-   - `name` (wajib di standar): 1-64 karakter, huruf kecil `a-z`, angka, dan tanda hubung tunggal, tidak diawali atau diakhiri `-`, sama dengan nama folder. Antigravity menjadikannya opsional (default nama folder), tetapi selalu tuliskan.
-   - `description` (wajib): 1-1024 karakter, sudut pandang orang ketiga, jelaskan apa yang dilakukan dan kapan dipicu. Beri tanda kutip ganda jika berisi `: ` atau `#`, karena YAML tanpa kutip menjadi tidak valid.
-   - `license`, `compatibility` (maks 500 karakter, tempat menyebut dependensi seperti `git` atau `python3`), dan `metadata` (map string ke string).
-2. Jika sumber tidak punya frontmatter (umum pada command lama), buat `name` dari nama file dan tulis `description` dari tujuan command. Jika ada nama kembar dari subfolder berbeda, beri awalan folder (misalnya `frontend-component`).
-3. Tangani field khusus Claude Code. Jangan hapus tanpa memindahkan logikanya:
-   - `when_to_use`: gabungkan kata kunci pemicunya ke `description` (total maks 1024 karakter). Pengecualian: jika skill juga `disable-model-invocation: true`, jangan perluas `description` dengan kata kunci pemicu (lihat baris berikutnya).
-   - `disable-model-invocation: true`: hapus. Tambahkan `## Safety Gate` di awal body yang mewajibkan konfirmasi pengguna sebelum aksi berdampak eksternal (deploy, commit, tag, hapus data, kirim pesan). Tulis `description` dengan frasa "Use only when the user explicitly asks to ..." agar skill tidak terpicu otomatis, karena di Claude skill ini memang tidak pernah dipicu oleh model.
-   - `user-invocable: false`: hapus. Tulis `description` sebagai pengetahuan latar belakang agar hanya terpicu secara kontekstual.
-   - `argument-hint` dan `arguments`: pindahkan ke bagian `## Inputs` di body.
-   - `allowed-tools` dan `disallowed-tools`: hapus pola Claude (`Bash(git *)`, `Read`, `Grep`). Di Claude, `allowed-tools` hanya pra-persetujuan, bukan pembatasan, dan izin di target diatur lewat Permissions Antigravity atau policy Gemini CLI, bukan lewat frontmatter skill. Larangan (`disallowed-tools`) menjadi batasan eksplisit di body, misalnya "Mode read-only: jangan memodifikasi file".
-   - `context: fork`, `agent`, `background`: hapus. Instruksikan agen mendelegasikan kerja berat ke subagent jika tersedia, atau meringkas output panjang sebelum melanjutkan.
-   - `model` dan `effort`: hapus. Tulis ekspektasi kedalaman analisis di body.
-   - `hooks`: hapus. Hooks di target adalah file terpisah (`.agents/hooks.json` atau `~/.gemini/config/hooks.json` di Antigravity, `settings.json` di Gemini CLI). Ubah aturannya menjadi langkah verifikasi wajib di body dan catat migrasi hooks sebagai tindak lanjut manual. Detail event dan kontrak JSON ada di `references/mapping-guide.md`.
-   - `paths`: hapus. Sebutkan pola file di `description` dan `## When to Use`. Untuk perilaku "aktif hanya saat menyentuh file tertentu", buat aturan `.agents/rules/<name>.md` dengan `trigger: glob` (contoh di `references/examples.md`).
-   - `shell`: hapus. Sebutkan shell yang dibutuhkan pada perintah eksekusi di body.
+1. Keep only standard Agent Skills fields:
+   - `name` (required by spec): 1-64 characters, lowercase `a-z`, digits, and single hyphens, no leading or trailing `-`, matching the folder name. Optional in Antigravity (defaults to folder name), but always include it.
+   - `description` (required): 1-1024 characters, third person, stating both what the skill does and when to trigger it. Wrap in double quotes if it contains `: ` or `#`, as unquoted values produce invalid YAML.
+   - `license`, `compatibility` (max 500 characters; note dependencies like `git` or `python3`), and `metadata` (string-to-string map).
+2. If the source lacks frontmatter (common in legacy commands), derive `name` from the filename and write `description` from the command's purpose. Prefix with the subfolder name if duplicates occur across subfolders (for example `frontend-component`).
+3. Handle Claude Code-only fields without losing their logic:
+   - `when_to_use`: merge its trigger keywords into `description` (total max 1024 characters). Exception: if `disable-model-invocation: true` is also set, do not broaden `description` with auto-trigger phrases (see next item).
+   - `disable-model-invocation: true`: remove. Add a `## Safety Gate` section at the top of the body requiring explicit user confirmation before external side effects (deploy, commit, tag, delete data, send messages). Phrase `description` with "Use only when the user explicitly asks to ..." so it does not auto-trigger.
+   - `user-invocable: false`: remove. Write `description` as background reference knowledge so it activates only contextually.
+   - `argument-hint` and `arguments`: move to an `## Inputs` section in the body.
+   - `allowed-tools` and `disallowed-tools`: remove Claude patterns (`Bash(git *)`, `Read`, `Grep`). In Claude, `allowed-tools` only pre-approves tools rather than restricting them; target permissions are configured in Antigravity Permissions or Gemini CLI policy, not skill frontmatter. Convert `disallowed-tools` into explicit body constraints (for example, "Read-only mode: do not modify any files").
+   - `context: fork`, `agent`, `background`: remove. Instruct the agent to delegate heavy work to an isolated subagent if available, or summarize verbose output before continuing.
+   - `model` and `effort`: remove. State the expected depth of analysis in the body.
+   - `hooks`: remove. Target hooks live in separate files (`.agents/hooks.json` or `~/.gemini/config/hooks.json` in Antigravity, `settings.json` in Gemini CLI). Convert the checks into mandatory verification steps in the body and log hook migration as a manual follow-up. See `references/mapping-guide.md` for event and JSON contract details.
+   - `paths`: remove. Mention the file patterns in `description` and `## When to Use`. For automatic activation when touching specific files, create an `.agents/rules/<name>.md` rule with `trigger: glob` (see `references/examples.md`).
+   - `shell`: remove. Specify the required shell in the execution command in the body.
 
-### Step 3: Konversi Sintaks dan Referensi di Body Markdown
+### Step 3: Convert Body Syntax and References
 
-1. **Injeksi perintah shell** (`` !`command` `` dan blok `` ```! ``): ubah menjadi langkah eksplisit di awal `## Steps` yang menyuruh agen menjalankan perintah di terminal lalu membaca hasilnya. Alasannya, `SKILL.md` di Gemini CLI dan Antigravity tidak melewati preprocessor, sehingga teks literal tertinggal dan model bisa menebak outputnya. Jika sumbernya command yang hanya dipanggil manual dan targetnya Gemini CLI, pertimbangkan custom command `.toml` yang punya `!{...}` dan `{{args}}` (lihat `references/examples.md`).
-2. **Argumen** (`$ARGUMENTS`, `$0`, `$1`, `$ARGUMENTS[N]`, `$name`): ubah menjadi bagian `## Inputs` yang memberi nama tiap parameter dan menjelaskan fallback (misalnya "Jika belum disebutkan, tanyakan sebelum melanjutkan"). Rujuk nama parameter itu di setiap langkah.
-3. **Variabel path dan runtime Claude**:
-   - `${CLAUDE_SKILL_DIR}/...` dan `${CLAUDE_PLUGIN_ROOT}/...`: ubah menjadi path relatif dari folder skill (misalnya `scripts/<script>.py`). Shell agen biasanya berjalan dari root proyek, bukan dari folder skill, jadi tulis juga bahwa path itu harus di-resolve terhadap folder yang berisi `SKILL.md` sebelum dijalankan.
-   - `${CLAUDE_PROJECT_DIR}`: ubah menjadi root workspace atau repositori.
-   - `${CLAUDE_SESSION_ID}`: hapus atau ganti nama file sementara berbasis timestamp.
-   - `${CLAUDE_EFFORT}`: hapus percabangannya dan tulis ekspektasi kedalaman analisis.
-4. **Nama tool dan ekosistem**:
-   - Ubah nama tool Claude (`Read`, `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Glob`, `Grep`, `Bash`, `WebFetch`, `WebSearch`, `TodoWrite`, `Task`, `AskUserQuestion`) menjadi instruksi berbasis kapabilitas ("baca file", "cari pola di codebase", "jalankan perintah shell", "tanyakan kepada pengguna"). Nama tool asli target hanya dipakai di konfigurasi hooks dan izin (tabel ada di `references/mapping-guide.md`).
-   - Ubah id `mcp__<server>__<tool>` menjadi "gunakan server MCP `<server>` untuk [kapabilitas]" dan catat server itu sebagai tindak lanjut manual.
-   - Rujukan ke skill lain ("panggil skill `x`") harus mengikuti nama skill hasil konversi, dan skill tujuannya ikut dikonversi serta dipasang.
-   - Ubah `CLAUDE.md` menjadi `GEMINI.md` (atau `AGENTS.md` di Antigravity) atau aturan proyek, dan `.claude/skills/` atau `.claude/commands/` menjadi `.agents/skills/`.
-5. **Struktur dan gaya**: pertahankan struktur skill sumber. Normalisasi hanya bila perlu (heading tidak konsisten, XML tag bercampur dengan Markdown, instruksi yang ambigu). Jelaskan alasan singkat di balik aturan penting agar model menerapkannya secara konsisten. Jaga `SKILL.md` di bawah 500 baris dan pindahkan referensi panjang ke `references/`.
+1. **Shell command injection** (`` !`command` `` and `` ```! `` blocks): convert into explicit initial steps under `## Steps` instructing the agent to run the command in the terminal and read the output. Gemini CLI and Antigravity do not preprocess `SKILL.md`, so literal injection syntax would remain unexecuted and cause the model to guess outputs. For manual-only commands targeting Gemini CLI, consider a `.toml` custom command, which supports `!{...}` and `{{args}}` (see `references/examples.md`).
+2. **Arguments** (`$ARGUMENTS`, `$0`, `$1`, `$ARGUMENTS[N]`, `$name`): convert into an `## Inputs` section naming each parameter and defining fallbacks (for example, "If not provided, ask the user before continuing"). Reference those parameter names in each step.
+3. **Claude path and runtime variables**:
+   - `${CLAUDE_SKILL_DIR}/...` and `${CLAUDE_PLUGIN_ROOT}/...`: convert to paths relative to the skill folder (for example `scripts/<script>.py`). Because the agent's shell typically runs from the project root rather than the skill folder, explicitly note that the path must be resolved relative to the folder containing `SKILL.md` before execution.
+   - `${CLAUDE_PROJECT_DIR}`: replace with the workspace or repository root.
+   - `${CLAUDE_SESSION_ID}`: remove or replace with a timestamp-based temporary filename.
+   - `${CLAUDE_EFFORT}`: remove conditional branches and state the expected analysis depth directly.
+4. **Tool names and ecosystem references**:
+   - Replace Claude tool names (`Read`, `Write`, `Edit`, `MultiEdit`, `NotebookEdit`, `Glob`, `Grep`, `Bash`, `WebFetch`, `WebSearch`, `TodoWrite`, `Task`, `AskUserQuestion`) with capability-based phrasing ("read the file", "search the codebase", "run a shell command", "ask the user"). Target-specific tool names belong only in hooks and permission configs (see `references/mapping-guide.md`).
+   - Replace `mcp__<server>__<tool>` IDs with "use the `<server>` MCP server to [capability]" and list the server as a manual follow-up.
+   - Update references to other skills ("invoke skill `x`") to match converted skill names, and convert and install those dependency skills too.
+   - Replace `CLAUDE.md` with `GEMINI.md` (or `AGENTS.md` in Antigravity) or project rules, and replace `.claude/skills/` or `.claude/commands/` with `.agents/skills/`.
+5. **Structure and style**: preserve the source skill's structure. Normalize only when needed (inconsistent headings, mixed XML tags and Markdown, ambiguous instructions). Briefly explain the "why" behind important rules so the model follows them consistently. Keep `SKILL.md` under 500 lines and move long reference material into `references/`.
 
-### Step 4: Audit File Pendukung (Multi-File Skills)
+### Step 4: Audit Supporting Files (Multi-File Skills)
 
-1. Periksa setiap file di `scripts/`, `references/`, `assets/`, `examples/`, dan `resources/`.
-2. Cari dan perbaiki path hardcode ke `~/.claude/`, `.claude/`, serta variabel `CLAUDE_*` (termasuk `$CLAUDE_PROJECT_DIR` tanpa kurung kurawal) di script dan dokumen referensi.
-3. Pastikan semua rujukan dari `SKILL.md` ke file pendukung memakai path relatif satu tingkat dari folder skill (`references/<file>.md`, `scripts/<script>.py`) dengan garis miring `/`.
-4. Arahkan agen menjalankan `--help` sebelum memakai script hanya jika script itu memang mengurai argumen (argparse, commander, dan sejenisnya). Script tanpa parsing argumen akan menjalankan aksi sungguhan. Jika ragu, dokumentasikan cara pakainya di `SKILL.md`.
-5. Untuk target Gemini app, perhatikan tipe file yang didukung (lihat `references/gemini-app.md`).
+1. Inspect every file in `scripts/`, `references/`, `assets/`, `examples/`, and `resources/`.
+2. Find and fix hardcoded `~/.claude/`, `.claude/`, and `CLAUDE_*` variables (including unbraced `$CLAUDE_PROJECT_DIR`) in scripts and reference docs.
+3. Ensure all references from `SKILL.md` to supporting files use one-level-deep relative paths from the skill folder (`references/<file>.md`, `scripts/<script>.py`) with forward slashes `/`.
+4. Instruct the agent to run `--help` before using a script only if the script actually parses arguments (such as `argparse` or `commander`). Scripts without argument parsing will execute immediately. When in doubt, document usage directly in `SKILL.md`.
+5. For the Gemini app target, verify all bundled file types are supported (see `references/gemini-app.md`).
 
-### Step 5: Validasi Hasil Konversi
+### Step 5: Validate the Converted Skill
 
-Jalankan script validasi. Shell agen biasanya berjalan dari root proyek, jadi gunakan path absolut ke folder skill konverter ini (`<skill_dir>`):
+Run the validation script. Because the agent's shell usually runs from the project root, use the absolute path to this converter skill's folder (`<skill_dir>`):
 
 ```bash
 python3 <skill_dir>/scripts/validate_skill.py --help
-python3 <skill_dir>/scripts/validate_skill.py <folder-hasil> --target <antigravity|gemini-cli|gemini-app|generic>
+python3 <skill_dir>/scripts/validate_skill.py <output-folder> --target <antigravity|gemini-cli|gemini-app|generic>
 ```
 
-Script memeriksa frontmatter (termasuk YAML yang tidak valid), sisa sintaks Claude di body, `references/`, dan `scripts/`, rujukan file yang rusak, serta batasan per target. Perbaiki semua ERRORS dan tinjau WARNINGS. Cek manual:
+The script checks YAML frontmatter validity, residual Claude syntax in the body, `references/`, and `scripts/`, broken file links, and target-specific constraints. Fix all ERRORS and review WARNINGS. Manual checks:
 
-- Frontmatter dibuka di baris 1 dengan `---` dan `description` valid.
-- Tidak ada sisa sintaks atau variabel Claude, dan `SKILL.md` di bawah 500 baris.
-- Skill benar-benar termuat di target: Antigravity App lewat Settings > Projects > Customizations, Antigravity CLI lewat `/skills`, Gemini CLI lewat `/skills list`, Gemini app lewat Customize > Skills.
-- Uji satu prompt realistis yang seharusnya memicu skill, lalu pastikan langkah-langkahnya dijalankan sesuai maksud sumber.
+- Frontmatter opens on line 1 with `---` and has a valid `description`.
+- No residual Claude syntax or variables remain, and `SKILL.md` is under 500 lines.
+- The skill loads in the target: Antigravity App via Settings > Projects > Customizations, Antigravity CLI via `/skills`, Gemini CLI via `/skills list`, Gemini app via Customize > Skills.
+- Test one realistic prompt that should trigger the skill and verify its steps match the source intent.
 
-### Step 6: Sajikan Hasil dan Ringkasan Migrasi
+### Step 6: Deliver the Output and Migration Summary
 
-Berikan output sesuai target:
+Deliver the output tailored to the target:
 
-- **Antigravity**: folder skill lengkap dan perintah penempatan (`.agents/skills/<name>/` untuk proyek, `~/.gemini/config/skills/<name>/` untuk global).
-- **Gemini CLI**: folder skill dan `gemini skills install <path>` (tambahkan `--scope workspace` untuk proyek).
-- **Gemini app**: folder atau `.zip` dengan `SKILL.md` di folder utama, untuk diunggah lewat Customize > Skills > Create > Upload.
+- **Antigravity**: complete skill folder and placement commands (`.agents/skills/<name>/` for project scope, `~/.gemini/config/skills/<name>/` for global scope).
+- **Gemini CLI**: skill folder and `gemini skills install <path>` (add `--scope workspace` for project scope).
+- **Gemini app**: folder or `.zip` with `SKILL.md` at the root, ready to upload via Customize > Skills > Create > Upload.
 
-Perintah lengkap dan cara verifikasinya ada di `references/mapping-guide.md`. Selalu sertakan **Ringkasan Migrasi** singkat:
+Full installation and verification commands are in `references/mapping-guide.md`. Always include a concise **Migration Summary**:
 
-1. **Perubahan Utama**: field frontmatter, sintaks, dan path yang dikonversi.
-2. **Adaptasi Perilaku**: fitur Claude yang diubah menjadi instruksi prosedural (`disable-model-invocation`, injeksi shell, `context: fork`).
-3. **Tindak Lanjut Manual**: hooks, aturan `.agents/rules/`, server MCP, subagent, dan izin yang perlu dikonfigurasi terpisah di target.
-4. **Verifikasi**: hasil `validate_skill.py` dan hasil uji muat di target.
+1. **Key Changes**: converted frontmatter fields, syntax, and paths.
+2. **Behavior Adaptations**: Claude features rewritten as procedural instructions (`disable-model-invocation`, shell injection, `context: fork`).
+3. **Manual Follow-Ups**: hooks, `.agents/rules/` files, MCP servers, subagents, and permissions requiring separate configuration in the target.
+4. **Verification**: `validate_skill.py` results and target load check status.
 
 ## Decision Tree for Unsupported Extensions
 
-| Fitur Claude Code | Strategi Konversi ke Gemini / Antigravity |
+| Claude Code Feature | Conversion Strategy for Gemini / Antigravity |
 | :--- | :--- |
-| `` !`cmd` `` atau blok `` ```! `` | Langkah pertama eksplisit: jalankan perintah via terminal dan baca outputnya. Gemini CLI custom command: `!{cmd}`. |
-| `$ARGUMENTS`, `$0`, `$1`, `$name` | Bagian `## Inputs` dengan nama parameter dan fallback jika kosong. Gemini CLI custom command: `{{args}}` (satu string utuh). |
-| `disable-model-invocation: true` | `## Safety Gate` di awal body dan `description` "Use only when the user explicitly asks ...". |
-| `context: fork` dan `agent` | Instruksikan subagent terisolasi (jika tersedia) atau ringkasan agar konteks utama tetap bersih. |
-| `hooks` | Langkah verifikasi wajib di body, lalu catat migrasi ke `hooks.json` Antigravity atau `settings.json` Gemini CLI. Skrip hook harus ditulis ulang karena kontrak JSON berbeda. |
-| `paths` (glob) | Sebut di `description`, dan buat aturan `.agents/rules/<name>.md` dengan `trigger: glob` jika perlu aktivasi otomatis per file. |
-| `allowed-tools` | Hapus. Atur izin di Permissions Antigravity atau policy Gemini CLI. |
-| `mcp__<server>__<tool>` | Tulis sebagai kapabilitas plus nama server MCP, catat konfigurasi server sebagai tindak lanjut. |
-| `.claude/commands/<name>.md` | Bungkus menjadi folder `<name>/SKILL.md`. Untuk command manual-only di Gemini CLI, alternatifnya `.gemini/commands/<name>.toml`. |
-| `.claude/agents/*.md`, plugin, `.mcp.json` | Di luar cakupan skill ini. Laporkan sebagai tindak lanjut (custom agents, plugins, `mcp_config.json` di Antigravity). |
+| `` !`cmd` `` or `` ```! `` block | Explicit first step: run the command in the terminal and read its output. Gemini CLI custom command: `!{cmd}`. |
+| `$ARGUMENTS`, `$0`, `$1`, `$name` | `## Inputs` section with named parameters and fallbacks when omitted. Gemini CLI custom command: `{{args}}` (single string). |
+| `disable-model-invocation: true` | `## Safety Gate` at the top of the body plus `description` starting with "Use only when the user explicitly asks ...". |
+| `context: fork` and `agent` | Instruct using an isolated subagent (if available) or summarizing output to keep the main context clean. |
+| `hooks` | Mandatory verification step in the body, plus note migrating to Antigravity `hooks.json` or Gemini CLI `settings.json`. Hook scripts must be rewritten due to different JSON contracts. |
+| `paths` (glob) | Mention patterns in `description`, and create `.agents/rules/<name>.md` with `trigger: glob` if automatic per-file activation is needed. |
+| `allowed-tools` | Remove. Configure permissions in Antigravity Permissions or Gemini CLI policy. |
+| `mcp__<server>__<tool>` | Rewrite as capability plus MCP server name, and log server configuration as a manual follow-up. |
+| `.claude/commands/<name>.md` | Wrap into `<name>/SKILL.md`. For manual-only commands on Gemini CLI, `.gemini/commands/<name>.toml` is an alternative. |
+| `.claude/agents/*.md`, plugins, `.mcp.json` | Out of scope for this skill. Report as manual follow-ups (custom agents, plugins, `mcp_config.json` in Antigravity). |
 
 ## Gotchas
 
-- **Memperluas `description` pada skill manual-only**: `when_to_use` yang digabung ke skill `disable-model-invocation: true` membuatnya terpicu otomatis di target. Tulis "Use only when the user explicitly asks ..." dan tetap pasang Safety Gate.
-- **Menghapus `when_to_use` begitu saja**: pada skill yang boleh dipicu otomatis, kata kunci pemicunya hilang dan skill tidak pernah terpicu. Gabungkan ke `description`.
-- **`description` tanpa tanda kutip yang berisi `: `**: YAML menjadi tidak valid (contoh: `description: Use when: user asks X`) dan skill bisa gagal dimuat. Kutip dengan tanda kutip ganda.
-- **Path relatif vs direktori kerja**: `scripts/<script>.py` relatif terhadap folder skill, sedangkan shell agen biasanya berjalan dari root proyek. Tulis eksplisit agar path di-resolve terhadap folder yang berisi `SKILL.md`.
-- **Membiarkan injeksi shell tertulis**: baik `` !`command` `` maupun blok `` ```! `` hanya menjadi teks literal. Model bisa mengira outputnya sudah ada atau menebak isinya.
-- **Path hardcode di dalam `scripts/` dan `references/`**: `SKILL.md` sering sudah bersih sementara script masih merujuk ke `~/.claude/skills/...`, `$CLAUDE_PROJECT_DIR`, atau `${CLAUDE_PLUGIN_ROOT}`. Selalu audit isinya.
-- **Nama tool Claude yang tidak ada di target**: "Use the MultiEdit tool" atau "Call TodoWrite" membingungkan agen Gemini. Ubah ke kata kerja kapabilitas yang netral.
-- **Pola `--help` pada script yang tidak mendukungnya**: menjalankan script tanpa parsing argumen dengan `--help` bisa mengeksekusi aksi nyata. Pastikan dulu dari kode atau dokumentasinya.
-- **File aturan tanpa frontmatter**: file di `.agents/rules/` tanpa frontmatter atau dengan `trigger` yang tidak dikenal dibuang diam-diam. Nilai yang valid: `always_on`, `model_decision`, `glob`, `manual`.
-- **Skill bersarang**: Antigravity hanya memindai satu tingkat, jadi `skills/<kategori>/<name>/` tidak akan termuat tanpa manifest `skills.json`.
-- **Menerjemahkan isi skill**: mengubah bahasa instruksi mengubah perilaku dan memutus kata kunci pemicu. Terjemahkan hanya atas permintaan pengguna.
-- **Konversi mekanis tanpa menjaga maksud**: jangan menghapus `disable-model-invocation: true` pada skill deploy atau produksi tanpa gerbang konfirmasi di body.
-- **Mengunggah ke Gemini app tanpa membersihkan bundel**: file `.DS_Store`, `.pyc`, serta tipe file yang tidak didukung (misalnya `.ts`, `.sql`) bisa membuat unggahan gagal.
+- **Broadening `description` on manual-only skills**: merging `when_to_use` into a `disable-model-invocation: true` skill causes it to auto-trigger on the target. Use "Use only when the user explicitly asks ..." and include a Safety Gate.
+- **Dropping `when_to_use` outright**: on auto-invocable skills, dropping it removes trigger keywords and stops the skill from firing. Merge them into `description`.
+- **Unquoted `description` containing `: `**: breaks YAML parsing (for example `description: Use when: user asks X`) and prevents the skill from loading. Wrap it in double quotes.
+- **Relative paths vs. working directory**: `scripts/<script>.py` is relative to the skill folder, while the agent's shell usually runs from the project root. Explicitly state to resolve paths against the folder containing `SKILL.md`.
+- **Leaving shell injection syntax untouched**: both `` !`command` `` and `` ```! `` become literal text, causing the model to assume output is already present or fabricate it.
+- **Hardcoded paths inside `scripts/` and `references/`**: `SKILL.md` is often cleaned while scripts still reference `~/.claude/skills/...`, `$CLAUDE_PROJECT_DIR`, or `${CLAUDE_PLUGIN_ROOT}`. Always audit supporting files.
+- **Claude-only tool names**: phrases like "Use the MultiEdit tool" or "Call TodoWrite" confuse Gemini agents. Use neutral capability verbs instead.
+- **Using `--help` on scripts without argument parsing**: running `--help` on a script without an argument parser may execute its real action. Check the script or its docs first.
+- **Rule files without frontmatter**: files in `.agents/rules/` without frontmatter or with an unrecognized `trigger` are silently ignored. Valid values: `always_on`, `model_decision`, `glob`, `manual`.
+- **Nested skill folders**: Antigravity scans only one level deep, so `skills/<category>/<name>/` will not load without a `skills.json` manifest.
+- **Translating skill contents**: changing the instruction language alters behavior and breaks trigger keywords. Translate only when requested.
+- **Mechanical conversion without preserving intent**: never strip `disable-model-invocation: true` from deploy or production skills without adding a confirmation gate in the body.
+- **Uploading uncleaned bundles to the Gemini app**: hidden files like `.DS_Store`, `.pyc`, or unsupported extensions (such as `.ts`, `.sql`) can cause upload failures.
 
 ## Sources
 
-Path dan perilaku di bawah ini diverifikasi pada 2026-11-21. Periksa ulang bila hasil di lapangan berbeda.
+Paths and behaviors below were verified on 2026-11-21. Re-check if live behavior differs.
 
 - Antigravity: https://antigravity.google/docs/skills, https://antigravity.google/docs/rules, https://antigravity.google/docs/hooks, https://antigravity.google/docs/customization-discovery, https://antigravity.google/docs/cli/gcli-migration/
 - Gemini CLI: https://geminicli.com/docs/cli/skills/, https://geminicli.com/docs/cli/custom-commands, https://geminicli.com/docs/hooks, https://geminicli.com/docs/reference/tools
-- Gemini app: https://support.google.com/gemini/answer/17094296 dan https://support.google.com/gemini/answer/17102773
-- Standar Agent Skills: https://agentskills.io/specification
+- Gemini app: https://support.google.com/gemini/answer/17094296 and https://support.google.com/gemini/answer/17102773
+- Agent Skills standard: https://agentskills.io/specification
 - Claude Code skills: https://code.claude.com/docs/en/skills

@@ -1,43 +1,43 @@
-# Gemini App (Skills): Batasan dan Cara Pasang
+# Gemini App (Skills): Limits and Upload Guide
 
-Gemini app (gemini.google.com, app Gemini di Mac, dan app mobile) adalah lingkungan percakapan, bukan agen coding lokal. Banyak skill Claude Code tidak bisa berjalan di sana apa adanya. Baca file ini sebelum mengonversi untuk target Gemini app. Diverifikasi ke halaman bantuan resmi pada 2026-11-21 (https://support.google.com/gemini/answer/17094296 dan https://support.google.com/gemini/answer/17102773). Saat ini syaratnya berusia 18 tahun ke atas dan masuk ke akun Gemini. Syarat akun, ketersediaan, dan batasan bisa berubah, jadi cek ulang halaman itu bila ada selisih.
+The Gemini app (gemini.google.com, the Gemini app on Mac, and the mobile app) is a conversational environment rather than a local coding agent. Many Claude Code skills cannot run there as-is. Read this file before converting for the Gemini app target. Verified against official help pages on 2026-11-21 (https://support.google.com/gemini/answer/17094296 and https://support.google.com/gemini/answer/17102773). Current requirements include being 18+ and signed in to a Gemini account. Account eligibility, availability, and limits may change, so re-check those pages if behavior differs.
 
-## Cara Memasang
+## How to Upload
 
-1. Buka gemini.google.com (atau app Gemini di Mac), lalu di sidebar klik **Customize** (jika tidak terlihat, klik **More** dulu) dan pilih **Skills** di bagian atas.
-2. Klik **Create** > **Upload**, lalu pilih salah satu: file `SKILL.md`, folder, atau `.zip` yang berisi `SKILL.md` di folder utama (root).
-3. Tinjau skill, ubah bila perlu, lalu klik **Create**.
+1. Open gemini.google.com (or the Gemini app on Mac), click **Customize** in the sidebar (click **More** first if hidden), and select **Skills** at the top.
+2. Click **Create** > **Upload**, then select a `SKILL.md` file, a folder, or a `.zip` archive with `SKILL.md` in its root folder.
+3. Review the skill, make any edits, and click **Create**.
 
-Catatan:
+Notes:
 
-- Unggah paling andal lewat web (gemini.google.com). Halaman bantuan Android menyebut opsi unggah belum tersedia di app mobile, dan pengelolaan penuh (termasuk berbagi) hanya di web. Skill yang dibuat di web tetap bisa dipakai di app mobile.
-- Untuk memperbarui file di dalam skill, unggah ulang seluruh skill beserta file referensinya (atau gunakan **Replace skill**). File referensi hanya bisa ditambahkan saat unggah.
-- Skill boleh merujuk skill lain di dalam instruksinya (menurut halaman bantuan), jadi unggah semua skill yang saling merujuk.
-- Pemanggilan manual: ketik `/` (atau `@`) di percakapan lalu pilih skill. Gemini juga memakai skill yang aktif secara otomatis berdasarkan konteks.
-- Skill dapat dinonaktifkan tanpa dihapus lewat menu skill (Deactivate), dan dapat dibagikan dari web.
+- Uploading is most reliable on the web (gemini.google.com). The Android help page notes that file upload is not yet available in the mobile app, and full management (including sharing) is web-only. Skills created on the web still work in the mobile app.
+- To update files inside a skill, re-upload the entire skill along with its reference files (or use **Replace skill**). Reference files can only be added during upload.
+- Skills may reference other skills in their instructions (per the help docs), so upload all interdependent skills.
+- Manual invocation: type `/` (or `@`) in chat and pick the skill. Gemini also activates enabled skills automatically based on context.
+- Skills can be turned off without deleting via the skill menu (Deactivate), and can be shared from the web app.
 
-## Batasan yang Mempengaruhi Konversi
+## Limits Affecting Conversion
 
-1. **Tidak ada terminal, git, atau filesystem proyek.** Skill yang berbasis perintah shell, `git`, atau membaca repositori lokal tidak akan berfungsi. Ubah menjadi skill instruksi murni (misalnya minta pengguna menempelkan diff atau isi file), atau sarankan Antigravity atau Gemini CLI.
-2. **Script tanpa internet.** Script yang membutuhkan internet tidak didukung, dan script tidak boleh membuat permintaan ke situs eksternal.
-3. **Tipe file referensi.** Didukung antara lain `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.json`, `.yaml`, `.toml`, `.xml`, `.html`, `.css`, gambar umum, serta `.py`, `.sh`, `.js`, dan `.ipynb`. Tidak didukung: `.doc`, `.xls`, `.ppt`, `.raw`, audio dan video, arsip (zip, tar, dan sejenisnya), `.cs`, `.kt`, `.kts`, `.php`, `.r`, `.rb`, `.scala`, `.swift`, `.ts`, `.jsx`, `.tsx`, dan `.sql`.
-4. **Ukuran dan bundel.** Total semua file maksimal 100 MB. File biner tersembunyi seperti `.DS_Store` dan `.pyc` dapat membuat unggahan gagal.
-5. **Nama skill.** Di `SKILL.md`, `name` wajib huruf kecil dengan kata dipisah tanda hubung (misalnya `my-new-skill`).
-6. **Layanan Google.** Akses ke Google Workspace (Calendar, Drive) dari skill bergantung pada pengaturan Keep Activity. Dengan Keep Activity mati, fitur itu tidak tersedia.
-7. **Tidak ada hooks, subagent, plugin, dan MCP** seperti di Antigravity atau Gemini CLI.
+1. **No terminal, git, or local project filesystem.** Skills relying on shell commands, `git`, or reading local repositories will not work. Rewrite them as pure instruction skills (for example, asking the user to paste a diff or file contents), or recommend Antigravity or Gemini CLI instead.
+2. **Offline scripts only.** Scripts requiring internet access are not supported, and scripts must not make requests to external websites.
+3. **Reference file types.** Supported types include `.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.json`, `.yaml`, `.toml`, `.xml`, `.html`, `.css`, common image formats, plus `.py`, `.sh`, `.js`, and `.ipynb`. Unsupported types: `.doc`, `.xls`, `.ppt`, `.raw`, audio and video, archives (zip, tar, etc.), `.cs`, `.kt`, `.kts`, `.php`, `.r`, `.rb`, `.scala`, `.swift`, `.ts`, `.jsx`, `.tsx`, and `.sql`.
+4. **Bundle size and cleanliness.** Total size across all files must not exceed 100 MB. Hidden binary or metadata files such as `.DS_Store` and `.pyc` can cause uploads to fail.
+5. **Skill name.** Inside `SKILL.md`, `name` must be all lowercase with words separated by hyphens (for example `my-new-skill`).
+6. **Google services.** Accessing Google Workspace (Calendar, Drive) from a skill depends on the Keep Activity setting. With Keep Activity off, those integrations are unavailable.
+7. **No hooks, subagents, plugins, or MCP** as in Antigravity or Gemini CLI.
 
-## Cara Menyesuaikan Skill
+## How to Adapt a Skill
 
-- Ganti file bertipe tidak didukung dengan versi yang didukung: ubah `.ts` atau `.sql` referensi menjadi `.txt` atau `.md`, atau pindahkan isinya ke `SKILL.md` atau `references/*.md`.
-- Hapus `.DS_Store`, `__pycache__`, dan `*.pyc` sebelum mengunggah.
-- Hapus langkah terminal. Ganti dengan instruksi yang meminta pengguna menyediakan data langsung di percakapan.
-- Tulis `description` dengan awalan "Use when ..." dalam sudut pandang orang ketiga, kurang dari 1024 karakter. Awali `name` dengan kata kerja yang menjelaskan aksi dan hindari kata generik seperti `helper` atau `tools`.
-- Pertahankan skill sebagai lembar contekan yang ringkas: instruksi cepat, aturan format, dan kesalahan umum yang harus dihindari. Beri tahu Gemini apa yang harus dilakukan bila informasi kurang (tanya pengguna, jangan menebak).
+- Replace unsupported file types with supported ones: convert `.ts` or `.sql` reference files to `.txt` or `.md`, or inline their contents into `SKILL.md` or `references/*.md`.
+- Remove `.DS_Store`, `__pycache__`, `*.pyc`, and unnecessary dotfiles (such as `.gitattributes`) before uploading.
+- Remove terminal steps. Replace them with instructions asking the user to provide the required text or files directly in chat.
+- Write `description` in the third person (under 1024 characters) including clear "Use when ..." triggers. Start `name` with an action verb and avoid generic names like `helper` or `tools`.
+- Keep the skill concise like a cheat sheet: clear steps, formatting rules, and common pitfalls to avoid. Tell Gemini what to do when details are missing (ask the user instead of guessing).
 
-## Validasi Sebelum Unggah
+## Validate Before Uploading
 
 ```bash
-python3 <skill_dir>/scripts/validate_skill.py <folder-skill> --target gemini-app
+python3 <skill_dir>/scripts/validate_skill.py <skill-folder> --target gemini-app
 ```
 
-Mode `gemini-app` memeriksa tipe file yang tidak didukung, file tersembunyi, ukuran bundel, dan script yang tampak memakai jaringan.
+The `gemini-app` target checks for unsupported file types, hidden files, total bundle size, and scripts that appear to access the network.
