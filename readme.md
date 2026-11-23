@@ -33,11 +33,11 @@ Clone or copy the repository into your project or global skills directory:
 ```bash
 # Project scope (recommended, shared with Gemini CLI)
 mkdir -p .agents/skills
-git clone https://github.com/zakirevaldi/claude-to-gemini-skill.git .agents/skills/claude-to-gemini-skill
+git clone https://github.com/valdvald/claude-to-gemini-skill.git .agents/skills/claude-to-gemini-skill
 
 # Global scope (all workspaces)
 mkdir -p ~/.gemini/config/skills
-git clone https://github.com/zakirevaldi/claude-to-gemini-skill.git ~/.gemini/config/skills/claude-to-gemini-skill
+git clone https://github.com/valdvald/claude-to-gemini-skill.git ~/.gemini/config/skills/claude-to-gemini-skill
 ```
 
 In Antigravity CLI, run `/skills` (or `/skills reload`) to verify the skill is loaded.
@@ -48,10 +48,10 @@ Install directly from GitHub:
 
 ```bash
 # User scope (default)
-gemini skills install https://github.com/zakirevaldi/claude-to-gemini-skill.git
+gemini skills install https://github.com/valdvald/claude-to-gemini-skill.git
 
 # Workspace / project scope
-gemini skills install https://github.com/zakirevaldi/claude-to-gemini-skill.git --scope workspace
+gemini skills install https://github.com/valdvald/claude-to-gemini-skill.git --scope workspace
 ```
 
 Verify inside a session with `/skills list`.
@@ -78,4 +78,4 @@ Available `--target` values: `generic` (default), `antigravity`, `gemini-cli`, `
 
 ## License
 
-This project is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
+This project is licensed under the [MIT License](LICENSE).
