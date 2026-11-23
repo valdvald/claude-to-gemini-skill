@@ -6,7 +6,7 @@ An [Agent Skill](https://agentskills.io/specification) that converts Claude and 
 
 - Audits source `SKILL.md` files, legacy `.claude/commands/*.md` commands, and supporting directories (`scripts/`, `references/`, `assets/`).
 - Standardizes YAML frontmatter and preserves the intent of Claude Code-only fields (`disable-model-invocation`, `when_to_use`, `context: fork`, `hooks`, `paths`, `allowed-tools`, `disallowed-tools`).
-- Rewrites Claude-specific body syntax (`` !`command` ``, `` ```! ``, `$ARGUMENTS`, `$0`, `${CLAUDE_SKILL_DIR}`, `CLAUDE.md`, Claude tool names, and `mcp__server__tool` IDs) into target-compatible instructions.
+- Rewrites Claude-specific body syntax (`` !`command` ``, ```` ```! ````, `$ARGUMENTS`, `$0`, `${CLAUDE_SKILL_DIR}`, `CLAUDE.md`, Claude tool names, and `mcp__server__tool` IDs) into target-compatible instructions.
 - Includes a Python validator (`scripts/validate_skill.py`) with per-target checks (`generic`, `antigravity`, `gemini-cli`, `gemini-app`).
 
 ## Repository Structure
@@ -20,6 +20,7 @@ claude-to-gemini-skill/
 │   └── gemini-app.md             # Gemini app upload rules and bundle constraints
 ├── scripts/
 │   └── validate_skill.py         # Validator for converted skills (Python 3.8+)
+├── LICENSE
 └── README.md
 ```
 
@@ -77,4 +78,4 @@ Available `--target` values: `generic` (default), `antigravity`, `gemini-cli`, `
 
 ## License
 
-Add a `LICENSE` file (such as MIT) if you plan to distribute this repository publicly.
+This project is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
